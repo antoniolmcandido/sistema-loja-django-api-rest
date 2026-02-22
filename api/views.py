@@ -1,6 +1,6 @@
 from rest_framework import viewsets, filters, permissions
 from django_filters.rest_framework import DjangoFilterBackend
-from shop.models import Category, Supplier, Product
+from .models import Category, Supplier, Product
 from .serializers import CategorySerializer, SupplierSerializer, ProductSerializer
 
 class CategoryViewSet(viewsets.ModelViewSet):

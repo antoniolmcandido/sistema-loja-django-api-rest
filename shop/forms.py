@@ -1,82 +1,105 @@
 from django import forms
-from .models import Product, Category, Supplier
-
 from django.contrib.auth.models import User
 
-class UserForm(forms.ModelForm):
-    class Meta:
-        model = User
-        fields = [
-            'is_superuser', 
-            'password', 
-            'username', 
-            'email', 
-            'first_name', 
-            'last_name',
-            'is_active',
-            'is_staff',
-            'date_joined'
-        ]
-        widgets = {
-            "is_superuser": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "password": forms.PasswordInput(attrs={"class": "form-control"}),
-            "username": forms.TextInput(attrs={"class": "form-control"}),
-            "email": forms.EmailInput(attrs={"class": "form-control"}),
-            "first_name": forms.TextInput(attrs={"class": "form-control"}),
-            "last_name": forms.TextInput(attrs={"class": "form-control"}),
-            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "is_staff": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "date_joined": forms.DateTimeInput(attrs={"class": "form-control"}),
-        }
-class ProductForm(forms.ModelForm):
-    category = forms.ModelChoiceField(
-        queryset=Category.objects.order_by('name'),
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label="Categoria"
+
+class UserForm(forms.Form):
+    """Formulário para criar usuários - ainda usa o modelo direto (necessário)"""
+
+    username = forms.CharField(
+        max_length=150,
+        label="Usuário",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    email = forms.EmailField(
+        label="Email", widget=forms.EmailInput(attrs={"class": "form-control"})
+    )
+    password = forms.CharField(
+        label="Senha", widget=forms.PasswordInput(attrs={"class": "form-control"})
+    )
+    is_staff = forms.BooleanField(
+        label="É Staff?",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
 
-    supplier = forms.ModelChoiceField(
-        queryset=Supplier.objects.order_by('name'),
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label="Fornecedor"
+    def save(self):
+        """Cria o usuário no banco"""
+        user = User.objects.create_user(
+            username=self.cleaned_data["username"],
+            email=self.cleaned_data["email"],
+            password=self.cleaned_data["password"],
+            is_staff=self.cleaned_data["is_staff"],
+        )
+        return user
+
+
+class ProductForm(forms.Form):
+    """✅ Formulário genérico - SEM dependência do modelo Product"""
+
+    name = forms.CharField(
+        max_length=100,
+        label="Nome",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    description = forms.CharField(
+        label="Descrição",
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+    )
+    price = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        label="Preço",
+        widget=forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+    )
+    stock = forms.IntegerField(
+        label="Estoque", widget=forms.NumberInput(attrs={"class": "form-control"})
+    )
+    category = forms.IntegerField(
+        label="Categoria", widget=forms.Select(attrs={"class": "form-control"})
+    )
+    supplier = forms.IntegerField(
+        label="Fornecedor", widget=forms.Select(attrs={"class": "form-control"})
+    )
+    url_image = forms.URLField(
+        label="URL da Imagem",
+        required=False,
+        widget=forms.URLInput(attrs={"class": "form-control"}),
     )
 
-    class Meta:
-        model = Product
-        fields = [
-            'name', 
-            'description', 
-            'price', 
-            'stock', 
-            'url_image',
-            'category',
-            'supplier'
-        ]
-        widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}
-            ),
-            "price": forms.NumberInput(attrs={"class": "form-control"}),
-            "stock": forms.NumberInput(attrs={"class": "form-control"}),
-            "url_image": forms.URLInput(attrs={"class": "form-control"}),
-        }
 
-class CategoryForm(forms.ModelForm):
-    class Meta:
-        model = Category
-        fields = ['name', 'description']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        }
+class CategoryForm(forms.Form):
+    """✅ Formulário genérico - SEM dependência do modelo Category"""
 
-class SupplierForm(forms.ModelForm):
-    class Meta:
-        model = Supplier
-        fields = ['name', 'contact_email', 'phone', 'address']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'contact_email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control'}),
-            'address': forms.TextInput(attrs={'class': 'form-control'}),
-        }
+    name = forms.CharField(
+        max_length=100,
+        label="Nome",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    description = forms.CharField(
+        label="Descrição",
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+    )
+
+
+class SupplierForm(forms.Form):
+    """✅ Formulário genérico - SEM dependência do modelo Supplier"""
+
+    name = forms.CharField(
+        max_length=100,
+        label="Nome",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    contact_email = forms.EmailField(
+        label="Email de Contato",
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+    )
+    phone = forms.CharField(
+        max_length=20,
+        label="Telefone",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    address = forms.CharField(
+        label="Endereço",
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+    )
