@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Página Não Encontrada
+{% endblock %}
+
+{% block content %}
+  {% load static %}
+  <h1 class="text-center text-danger">404 - Página Não Encontrada</h1>
+  <img src="{% static 'shop/img/erro404.jpg' %}" alt="Erro 404" class="d-block mx-auto w-25" />
+  <p class="text-center">Desculpe, a página que você está procurando não existe.</p>
+  <div class="row justify-content-center">
+    <div class="d-flex col-3">
+      <a href="{% url 'product_list' %}" class="btn btn-primary d-block mx-auto">Voltar para a Página Inicial</a>
+    </div>
+  </div>
+{% endblock %}
