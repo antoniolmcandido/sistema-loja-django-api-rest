@@ -42,12 +42,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "shop",
-    "api",
-    "rest_framework",
-    "drf_yasg",
-    "django_filters",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
 ]
 
 MIDDLEWARE = [
@@ -80,30 +74,11 @@ TEMPLATES = [
     },
 ]
 
-REST_FRAMEWORK = {
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 100,
-    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
-    # Adicione estas linhas para autenticação
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        # "rest_framework.authentication.TokenAuthentication",  # Para Token simples
-        "rest_framework_simplejwt.authentication.JWTAuthentication",  # Para JWT
-    ],
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
-    ],
-}
-
 API_BASE_URL = config("API_BASE_URL", default="http://localhost:8000/api")
 API_USERNAME = config("API_USERNAME", default="")
 API_PASSWORD = config("API_PASSWORD", default="")
 API_AUTH_TOKEN = config("API_AUTH_TOKEN", default="")
 API_REQUEST_TIMEOUT = config("API_REQUEST_TIMEOUT", default=10, cast=int)
-
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60), # 1440
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1), # 7
-}
 
 WSGI_APPLICATION = "config.wsgi.application"
 
