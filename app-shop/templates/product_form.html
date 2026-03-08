@@ -24,51 +24,33 @@
   {{ form.as_p }}
 
   <div class="mb-3">
-      <label for="category" class="form-label">Categoria</label>
-      <select id="category" name="category" class="form-control" required>
-          <option value="">-- Selecione uma categoria --</option>
-          {% for category in categories %}
-          <option
-              value="{{ category.id }}"
-              {%
-              if
-              form.category.value=""
-              ="category.id"
-              %}selected{%
-              endif
-              %}
-          >
-              {{ category.name }}
-          </option>
-          {% endfor %}
-      </select>
-      {% if form.category.errors %}
-      <div class="alert alert-danger">{{ form.category.errors }}</div>
-      {% endif %}
+    <label for="category" class="form-label">Categoria</label>
+    <select id="category" name="category" class="form-control" required>
+        <option value="">-- Selecione uma categoria --</option>
+        {% for category in categories %}
+        <option value="{{ category.id }}" {% if form.category.value|stringformat:"s" == category.id|stringformat:"s" %}selected{% endif %}>
+            {{ category.name }}
+        </option>
+        {% endfor %}
+    </select>
+    {% if form.category.errors %}
+    <div class="alert alert-danger">{{ form.category.errors }}</div>
+    {% endif %}
   </div>
 
   <div class="mb-3">
-      <label for="supplier" class="form-label">Fornecedor</label>
-      <select id="supplier" name="supplier" class="form-control" required>
-          <option value="">-- Selecione um fornecedor --</option>
-          {% for supplier in suppliers %}
-          <option
-              value="{{ supplier.id }}"
-              {%
-              if
-              form.supplier.value=""
-              ="supplier.id"
-              %}selected{%
-              endif
-              %}
-          >
-              {{ supplier.name }}
-          </option>
-          {% endfor %}
-      </select>
-      {% if form.supplier.errors %}
-      <div class="alert alert-danger">{{ form.supplier.errors }}</div>
-      {% endif %}
+    <label for="supplier" class="form-label">Fornecedor</label>
+    <select id="supplier" name="supplier" class="form-control" required>
+        <option value="">-- Selecione um fornecedor --</option>
+        {% for supplier in suppliers %}
+        <option value="{{ supplier.id }}" {% if form.supplier.value|stringformat:"s" == supplier.id|stringformat:"s" %}selected{% endif %}>
+            {{ supplier.name }}
+        </option>
+        {% endfor %}
+    </select>
+    {% if form.supplier.errors %}
+    <div class="alert alert-danger">{{ form.supplier.errors }}</div>
+    {% endif %}
   </div>
 
   <button type="submit" class="btn btn-primary">

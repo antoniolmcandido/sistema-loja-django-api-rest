@@ -25,16 +25,46 @@ class APIClient:
         self.base_url = settings.API_BASE_URL
         self.username = settings.API_USERNAME
         self.password = settings.API_PASSWORD
-        self.token = settings.API_AUTH_TOKEN
         self.timeout = getattr(settings, 'API_REQUEST_TIMEOUT', 10)
 
-        # Headers padrão para todas as requisições
-        self.headers = {
-            'username': self.username,
-            'password': self.password,
-            'Authorization': f'Bearer {self.token}',
+    def _get_headers(self):
+        """Construção dinâmica dos cabeçalhos de autenticação para API"""
+        token = self._get_or_refresh_token()
+        return {
+            'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json',
         }
+    
+    def _get_or_refresh_token(self):
+        """Obtém token JWT do cache ou gera um novo se expirado ou ausente"""
+        token = cache.get('api_jwt_token')
+        
+        if token:
+            return token
+        
+        # Se não houver token ou estiver expirado, solicitar um novo
+        try:
+            auth_url = f"{self.base_url}/auth/token/"
+            response = requests.post(
+                auth_url,
+                json={
+                    'username': self.username,
+                    'password': self.password
+                },
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            # Salvar no cache (55 min, menos que os 60 de validade)
+            access_token = data['access']
+            cache.set('api_jwt_token', access_token, timeout=3300)
+            
+            return access_token
+            
+        except Exception as e:
+            logger.error(f"Erro ao obter token JWT: {str(e)}")
+            raise
 
     def _request(self, method, endpoint, data=None, params=None):
         """
@@ -58,7 +88,7 @@ class APIClient:
             if method.upper() == 'GET':
                 response = requests.get(
                     url,
-                    headers=self.headers,
+                    headers=self._get_headers(),
                     params=params,
                     timeout=self.timeout
                 )
@@ -66,7 +96,7 @@ class APIClient:
             elif method.upper() == 'POST':
                 response = requests.post(
                     url,
-                    headers=self.headers,
+                    headers=self._get_headers(),
                     json=data,
                     timeout=self.timeout
                 )
@@ -74,7 +104,7 @@ class APIClient:
             elif method.upper() == 'PUT':
                 response = requests.put(
                     url,
-                    headers=self.headers,
+                    headers=self._get_headers(),
                     json=data,
                     timeout=self.timeout
                 )
@@ -82,7 +112,7 @@ class APIClient:
             elif method.upper() == 'PATCH':
                 response = requests.patch(
                     url,
-                    headers=self.headers,
+                    headers=self._get_headers(),
                     json=data,
                     timeout=self.timeout
                 )
@@ -90,7 +120,7 @@ class APIClient:
             elif method.upper() == 'DELETE':
                 response = requests.delete(
                     url,
-                    headers=self.headers,
+                    headers=self._get_headers(),
                     timeout=self.timeout
                 )
 
@@ -141,14 +171,14 @@ class APIClient:
             if method.upper() == 'GET':
                 response = requests.get(
                     url,
-                    headers=self.headers,
+                    headers=self._get_headers(),
                     timeout=self.timeout
                 )
 
             elif method.upper() == 'PUT':
                 response = requests.put(
                     url,
-                    headers=self.headers,
+                    headers=self._get_headers(),
                     json=data,
                     timeout=self.timeout
                 )
@@ -156,7 +186,7 @@ class APIClient:
             elif method.upper() == 'PATCH':
                 response = requests.patch(
                     url,
-                    headers=self.headers,
+                    headers=self._get_headers(),
                     json=data,
                     timeout=self.timeout
                 )
@@ -164,7 +194,7 @@ class APIClient:
             elif method.upper() == 'DELETE':
                 response = requests.delete(
                     url,
-                    headers=self.headers,
+                    headers=self._get_headers(),
                     timeout=self.timeout
                 )
 
@@ -322,6 +352,53 @@ class APIClient:
     def delete_product(self, pk):
         """Deletar um produto."""
         return self._request_with_id('DELETE', 'products', pk)
+    
+    # Métodos para Usuários
+
+    def login_user(self, username, password):
+        try:
+            auth_url = f"{self.base_url}/auth/token/"
+            response = requests.post(
+                auth_url,
+                json={
+                    'username': username,
+                    'password': password
+                },
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            access_token = data['access']
+            cache.set('api_jwt_token', access_token, timeout=3300)
+
+            user_data = self.get_current_user()
+
+            return {
+                'success': True,
+                'token': data,
+                'user': user_data
+            }
+        
+        except requests.exceptions.HTTPError as e:
+            logger.error(f'Erro ao fazer login: {e}')
+            
+            return {
+                'success': False,
+                'message': 'Credenciais inválidas'
+            }
+        
+    def get_current_user(self):
+        return self._request('GET', 'users/me')
+    
+    def create_user(self, data):
+        return self._request('POST', 'users', data=data)
+    
+    def validate_token(self):
+        try:
+            return self._request('POST', 'users/validate_token')
+        except Exception:
+            return {'valid': False}
 
 
 # Criar uma instância global do cliente para usar em toda a aplicação

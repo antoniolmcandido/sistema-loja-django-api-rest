@@ -6,6 +6,8 @@ from django.contrib import messages
 from .api_client import api_client
 from .forms import ProductForm, CategoryForm, SupplierForm, UserForm
 import logging
+from django.contrib.auth.models import User
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -16,33 +18,72 @@ def user_login(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect("product_list")
-        else:
-            return render(request, "login.html", {"error_message": "Usuário ou senha inválidos."})
+        
+        api_response = api_client.login_user(username, password)
+
+        if api_response['success']:
+            # Login local para manter sessão Django
+            user = authenticate(request, username=username, password=password)
+            
+            # Se usuário não existe localmente, criar
+            if user is None:
+                user_data = api_response['user']
+                user, created = User.objects.get_or_create(
+                    username=username,
+                    defaults={
+                        'email': user_data.get('email', ''),
+                        'is_staff': user_data.get('is_staff', False),
+                        'is_active': user_data.get('is_active', True)
+                    }
+                )
+                # Definir senha apenas se criou novo
+                if created:
+                    user.set_password(password)
+                    user.save()
+                
+                # Autenticar novamente
+                user = authenticate(request, username=username, password=password)
+            
+            if user is not None:
+                login(request, user)
+                return redirect("product_list")
+        
+        return render(request, "login.html", {
+            "error_message": api_response.get('error', 'Usuário ou senha inválidos.')
+        })
+    
     return render(request, "login.html")
 
 def user_logout(request):
     logout(request)
+    cache.delete('api_jwt_token')
     return redirect("product_list")
 
 @login_required(login_url='user_login')
 @user_passes_test(is_staff_user)
 def user_create(request):
     """
-    NOTA: Criação de usuários ainda acessa o banco direto.
-    Usuários são criados apenas via Django Admin por segurança.
+    Usuários são criados via API.
     """
     if request.method == "POST":
         form = UserForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.set_password(form.cleaned_data["password"])
-            user.save()
-            messages.success(request, "Usuário criado com sucesso!")
-            return redirect("product_list")
+            try:
+                user_data = {
+                    'username': form.cleaned_data['username'],
+                    'email': form.cleaned_data['email'],
+                    'password': form.cleaned_data['password'],
+                    'is_staff': form.cleaned_data['is_staff'],
+                }
+                
+                # Criar via API
+                api_client.create_user(user_data)
+                messages.success(request, "Usuário criado com sucesso!")
+                return redirect("product_list")
+                
+            except Exception as e:
+                logger.error(f"Erro ao criar usuário via API: {str(e)}")
+                messages.error(request, f"Erro ao criar usuário: {str(e)}")
     else:
         form = UserForm()
 
@@ -120,8 +161,8 @@ def product_create(request):
                     'description': form.cleaned_data['description'],
                     'price': str(form.cleaned_data['price']),  # Converter para string
                     'stock': form.cleaned_data['stock'],
-                    'category': form.cleaned_data['category'].id,
-                    'supplier': form.cleaned_data['supplier'].id,
+                    'category': form.cleaned_data['category'],
+                    'supplier': form.cleaned_data['supplier'],
                 }
 
                 # Adicionar URL da imagem se fornecida
@@ -180,8 +221,8 @@ def product_update(request, pk=1):
                     'description': form.cleaned_data['description'],
                     'price': str(form.cleaned_data['price']),
                     'stock': form.cleaned_data['stock'],
-                    'category': form.cleaned_data['category'].id,
-                    'supplier': form.cleaned_data['supplier'].id,
+                    'category': form.cleaned_data['category'],
+                    'supplier': form.cleaned_data['supplier'],
                 }
 
                 if form.cleaned_data.get('url_image'):
@@ -198,6 +239,17 @@ def product_update(request, pk=1):
 
     else:
         form = ProductForm(initial=product)
+        initial_data = {
+            'name': product.get('name'),
+            'description': product.get('description'),
+            'price': product.get('price'),
+            'stock': product.get('stock'),
+            'url_image': product.get('url_image'),
+            # Extrair apenas o ID se for dict, ou usar o valor direto se já for int
+            'category': product.get('category') if isinstance(product.get('category'), int) else product.get('category', {}).get('id'),
+            'supplier': product.get('supplier') if isinstance(product.get('supplier'), int) else product.get('supplier', {}).get('id'),
+        }
+        form = ProductForm(initial=initial_data)
 
     return render(request, 'product_form.html', {
         'form': form,
