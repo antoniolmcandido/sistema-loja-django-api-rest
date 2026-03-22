@@ -1,9 +1,18 @@
 from django.db import models
+from django.core.validators import MinValueValidator
+from decimal import Decimal
 
 class Product(models.Model):
     name = models.CharField(max_length=100, verbose_name='Nome')
     description = models.TextField(verbose_name='Descrição')
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Preço')
+    price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        verbose_name='Preço',
+        validators=[
+            MinValueValidator(Decimal('0.01')), 
+        ]
+    )
     stock = models.PositiveIntegerField(verbose_name='Estoque')
     url_image = models.URLField(max_length=200, blank=True, verbose_name='URL da Imagem')
 
