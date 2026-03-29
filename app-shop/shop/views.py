@@ -49,7 +49,7 @@ def user_login(request):
                 return redirect("product_list")
         
         return render(request, "login.html", {
-            "error_message": api_response.get('error', 'Usuário ou senha inválidos.')
+            "error": api_response.get('error', 'Usuário ou senha inválidos.')
         })
     
     return render(request, "login.html")

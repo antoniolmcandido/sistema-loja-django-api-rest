@@ -52,7 +52,7 @@
 
       {% if produtos.has_next %}
         <a href="?page={{ produtos.next_page_number }}" class="btn btn-primary">próxima</a>
-        <a href="?page={{ produtos.paginator.num_pages }}" class="btn btn-primary">última &raquo;</a>
+        <a href="?page={{ produtos.paginator.num_pages }}" class="btn btn-primary" id="btn-last-page">última &raquo;</a>
       {% endif %}
     </span>
   </div>
